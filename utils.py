@@ -3,15 +3,14 @@ import os
 import requests
 
 
-def get_top100_list():
+def get_top100_list(refresh_html=False):
     """
     return list of real-time rank01~100
     file location:
         upper dir location based on current location :
             os.path.dirname(os.path.abspath(__nam__))
 
-        rank 01~50: data/chart_realtime_50.html
-        rank 51~100: data/chart_realtime_100.html
+        rank 01~100: data/chart_realtime_50.html
     :return:
     """
 
@@ -30,25 +29,20 @@ def get_top100_list():
     os.makedirs(path_data_dir, exist_ok=True)
 
     # realtime rank url
-    url_chart_realtime_50 = 'https://www.melon.com/chart/index.htm'
-    url_chart_realtime_100 = 'https://www.melon.com/chart/index.htm#params%5Bidx%5D=51'
+    url_chart_realtime = 'https://www.melon.com/chart/index.htm'
 
     # 1.using 'xt' mode and try/except syntax
-    file_path_50 = os.path.join(path_data_dir, 'chart_realtime_50.html')
+    #   if refresh_html is True, re-download html source
+    file_path = os.path.join(path_data_dir, 'chart_realtime.html')
     try:
-        with open(file_path_50, 'wt') as f:
-            source50 = requests.get(url_chart_realtime_50).text
-            f.write(source50)
+        file_mode = 'wt' if refresh_html else 'xt'
+        with open(file_path, file_mode) as f:
+            source = requests.get(url_chart_realtime).text
+            f.write(source)
     except FileExistsError:
-        print(f'"{file_path}" file already exists')
+        print(f'"{file_path}" file already exists and up-to-date')
 
-    # 2. check before sending a requests
-    file_path_100 = os.path.join(path_data_dir, 'chart_realtime_100.html')
-    if not os.path.exists(file_path_100,):
-        with open(file_path_100, 'wt') as f:
-            source100 = requests.get(url_chart_realtime_100).text
-            f.write(source100)
-    source = source50 + source100
+
 
 
 
