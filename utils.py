@@ -70,3 +70,16 @@ def get_top100_list(refresh_html=False):
         })
 
     return result
+
+
+def get_song_detail(song_id):
+    """
+    terurn details of each songs
+    make each elements in 'get_top100_list' get song_id
+
+
+    :param song_id:
+    :return: dict of details
+    """
+    pass
+
