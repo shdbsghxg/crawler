@@ -144,6 +144,7 @@ def get_song_detail(song_id, refresh_html=False):
         'release_date': release_date,
         'genre': genre,
         'lyrics': lyrics
+
         # HW
         # 'producer': {
         #     '작사':['별들의 전쟁'],
@@ -152,3 +153,62 @@ def get_song_detail(song_id, refresh_html=False):
         #
         # },
     }
+
+
+# def song_search(refresh_html=False):
+#
+#     song_title_search_list = []
+#
+#     title = input('title to be searched : ')
+#     file_path = os.path.join(DATA_DIR, f'song_search_{title}.html')
+#
+#     try:
+#         file_mode = 'wt' if refresh_html else 'xt'
+#         with open(file_path, file_mode) as f:
+#             url = f'https://www.melon.com/search/total/index.htm?q={title}B&section=&ipath=srch_form'
+#             params = {
+#                 'title': title,
+#             }
+#             response = requests.get(url, params)
+#             source = response.text
+#             f.write(source)
+#     except FileExistsError:
+#         print(f'"{file_path}" file already exists and up-to-date')
+#     except ValueError:
+#         # when file is too short
+#         os.remove(file_path)
+#         return
+#
+#     source = open(file_path, 'rt').read()
+#     soup = BeautifulSoup(source, 'lxml')
+#
+#     song_title_search = soup.find('div', class_='ellipsis').find('a', class_='fc_gray').get('title')
+#
+#     song_title_search_list.append({
+#         'song_title_search': song_title_search
+#     })
+#
+#     return song_title_search_list
+
+def search_song(q):
+    url = 'https://www.melon.com/search/song/index.htm'
+    params = {
+        'q': q,
+        'section': 'song',
+    }
+    response = requests.get(url, params)
+    soup = BeautifulSoup(response.text, 'lxml')
+    tr_list = soup.select('form#frm_defaultList table > tbody > tr')
+
+    result = []
+    for tr in tr_list:
+        q = tr.select_one('td:nth-of-type(3) a.fc_gray').get_text(strip=True)
+        artist = tr.select_one('td:nth-of-type(4) span.checkEllipsisSongdefaultList').get_text(strip=True)
+        album = tr.select_one('td:nth-of-type(5) a').get_text(strip=True)
+
+        result.append({
+            'title': q,
+            'artist': artist,
+            'album': album,
+        })
+    return result
