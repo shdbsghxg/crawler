@@ -5,8 +5,15 @@ import requests
 
 from bs4 import BeautifulSoup
 
-source = open('melon.html', 'rt').read()
-soup = BeautifulSoup(source, 'lxml')
+# location of projects container
+PATH_MODULE = os.path.abspath(__file__)
+print(f'path_module: {PATH_MODULE}')
+ROOT_DIR = os.path.dirname(PATH_MODULE)
+print(f'path_module_dir: {ROOT_DIR}')
+
+# location of data/ folder
+DATA_DIR = os.path.join(ROOT_DIR, 'data')
+print(f'path_data_dir: {DATA_DIR}')
 
 
 def get_top100_list(refresh_html=False):
@@ -20,26 +27,16 @@ def get_top100_list(refresh_html=False):
     :return:
     """
 
-    # location of projects container
-    path_module = os.path.abspath(__name__)
-    print(f'path_module: {path_module}')
-    root_dir = os.path.dirname(path_module)
-    print(f'path_module_dir: {root_dir}')
-
-    # location of data/ folder
-    path_data_dir = os.path.join(root_dir, 'data')
-    print(f'path_data_dir: {path_data_dir}')
-
     # if there's no path_data_dir folder, then let it be
     # to make 'path_data_dir = crawler/data' folder
-    os.makedirs(path_data_dir, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
 
     # realtime rank url
     url_chart_realtime = 'https://www.melon.com/chart/index.htm'
 
     # 1.using 'xt' mode and try/except syntax
     #   if refresh_html is True, re-download html source
-    file_path = os.path.join(path_data_dir, 'chart_realtime.html')
+    file_path = os.path.join(DATA_DIR, 'chart_realtime.html')
     try:
         file_mode = 'wt' if refresh_html else 'xt'
         with open(file_path, file_mode) as f:
@@ -48,6 +45,9 @@ def get_top100_list(refresh_html=False):
     except FileExistsError:
         print(f'"{file_path}" file already exists and up-to-date')
 
+    source = open('melon.html', 'rt').read()
+    soup = BeautifulSoup(source, 'lxml')
+
     result = []
     for tr in soup.find_all('tr', class_=['lst50', 'lst100']):
         rank = tr.find('span', class_='rank').text
@@ -55,6 +55,11 @@ def get_top100_list(refresh_html=False):
         title = tr.find('div', class_='rank01').find('a').text
         artist = tr.find('div', class_='rank02').find('a').text
         album = tr.find('div', class_='rank03').find('a').text
+
+        # HW review in class
+        song_id_href = tr.find('a', class_='song_info').get('href')
+        song_id = re.search(r"\('(\d+)'\)", song_id_href).group(1)
+
         # .* -> 임의 문자 최대 반복
         # \. -> '.' 문자
         # .*?/ -> '/' 전까지 임의 문자 최소 반복
@@ -67,19 +72,43 @@ def get_top100_list(refresh_html=False):
             'title': title,
             'artist': artist,
             'album': album,
+            'song_id': song_id,
+
         })
 
     return result
 
 
-def get_song_detail(song_id):
+def get_song_detail(song_id, refresh_html=False):
     """
     terurn details of each songs
     make each elements in 'get_top100_list' get song_id
-
+    ref) http://www.melon.com/song/detail.htm?songId=30755375
 
     :param song_id:
+    :param refresh_html: parameter for checking whether there's HTML already or not
     :return: dict of details
     """
-    pass
 
+    file_path = os.path.join(DATA_DIR, f'song_detail_{song_id}.html')
+    try:
+        file_mode = 'wt' if refresh_html else 'xt'
+        with open(file_path, file_mode) as f:
+            url = f'https://melon.com/song/detail.html'
+            params = {
+                'songId': song_id,
+            }
+            response = requests.get(url, params)
+            source = response.text
+            f.write(source)
+    except FileExistsError:
+        print(f'"{file_path}" file already exists and up-to-date')
+    except ValueError:
+        # when file is too short
+        os.remove(file_path)
+        return
+
+    source = open(file_path, 'rt').read()
+    soup = BeautifulSoup(source, 'lxml')
+    # div.song_name's child, strong has blanks both side, which is cut by strip()
+    title = soup.find('div', class_='song_name').strong.next_sibling.strip()
